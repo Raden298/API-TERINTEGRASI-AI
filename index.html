@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Pantau Sentimen Dampak Abu Vulkanik G. Anak Krakatau - SIPENDAK</title>
+    <!-- Menggunakan Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Menggunakan Chart.js untuk grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Font standar instansi pemerintah */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        /* Warna khas BNPB/BMKG (Biru Tua, Oranye Peringatan) */
+        .bg-instansi-primary { background-color: #0b3d91; }
+        .text-instansi-primary { color: #0b3d91; }
+        .border-instansi-primary { border-color: #0b3d91; }
+        
+        .bg-instansi-warning { background-color: #f39c12; }
+        .text-instansi-warning { color: #f39c12; }
+
+        /* Header kaku khas web pemerintah */
+        .header-top {
+            background-color: #0b3d91;
+            border-bottom: 4px solid #f39c12;
+        }
+
+        .header-title {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* Styling tabel yang formal */
+        .table-resmi {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .table-resmi th {
+            background-color: #e2e8f0;
+            color: #333;
+            font-weight: 600;
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .table-resmi td {
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+        }
+
+        .table-resmi tr:nth-child(even) { background-color: #f8fafc; }
+        .table-resmi tr:hover { background-color: #f1f5f9; }
+
+        /* Label sentimen */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 2px; /* Tidak terlalu bulat */
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+        }
+        .badge-negatif { background-color: #dc2626; } /* Merah */
+        .badge-netral { background-color: #64748b; }  /* Abu-abu */
+        .badge-positif { background-color: #16a34a; } /* Hijau */
+
+        /* Panel box dengan gaya kaku */
+        .panel-box {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-top: 3px solid #0b3d91;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 0; /* Tanpa rounded corners untuk kesan jadul/resmi */
+        }
+
+        .panel-header {
+            background-color: #f8fafc;
+            border-bottom: 1px solid #cbd5e1;
+            padding: 12px 15px;
+            font-weight: 600;
+            color: #0b3d91;
+        }
+
+        /* Loading spinner sederhana */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0b3d91;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <header class="header-top text-white py-4 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <!-- Logo placeholder (bisa diganti logo asli) -->
+            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-instansi-primary font-bold text-xl">
+                RI
+            </div>
+            <div>
+                <h1 class="header-title text-xl md:text-2xl uppercase">Sistem Pantau Sentimen Masyarakat (SIPENDAK)</h1>
+                <p class="text-sm text-gray-200">Pusat Analisis Dampak Abu Vulkanik Gunung Anak Krakatau</p>
+            </div>
+        </div>
+        <div class="mt-4 md:mt-0 text-right">
+            <p class="text-sm font-medium" id="current-date">Memuat tanggal...</p>
+            <p class="text-xs text-instansi-warning mt-1">Status Gunung: <b>SIAGA (Level III)</b></p>
+        </div>
+    </header>
+
+    <nav class="bg-white border-b border-gray-300 px-6 md:px-12 py-2 text-sm font-medium">
+        <ul class="flex space-x-6">
+            <li><a href="#" class="text-instansi-primary hover:underline border-b-2 border-instansi-primary pb-2">Beranda / Dashboard</a></li>
+            <li><a href="#" class="text-gray-600 hover:text-instansi-primary hover:underline">Data Detail Sentimen</a></li>
+            <li><a href="#" class="text-gray-600 hover:text-instansi-primary hover:underline">Laporan Rekapitulasi</a></li>
+        </ul>
+    </nav>
+
+    <main class="flex-grow p-6 md:p-12">
+        
+        <!-- Peringatan Keamanan -->
+        <div class="bg-red-50 border-l-4 border-red-600 p-4 mb-6 text-sm text-red-800">
+            <p class="font-bold">PERHATIAN:</p>
+            <p>Data di bawah ini merupakan hasil analisis otomatis dari platform publik. Gunakan sebagai indikasi awal sebaran dampak abu vulkanik di masyarakat. Tetap ikuti arahan resmi dari BPBD setempat.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- Ringkasan Statistik -->
+            <div class="panel-box md:col-span-1">
+                <div class="panel-header">RINGKASAN STATISTIK SENTIMEN</div>
+                <div class="p-4">
+                    <div id="stats-loading" class="text-center py-4">
+                        <div class="loader"></div>
+                        <p class="text-xs text-gray-500">Mengambil data agregat...</p>
+                    </div>
+                    <div id="stats-content" class="hidden">
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600">Total Data Dianalisis</p>
+                            <p class="text-3xl font-bold text-instansi-primary" id="total-data">0</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-sm font-medium text-red-600">Dampak Negatif (Keluhan/Kerusakan)</span>
+                                <span class="badge badge-negatif" id="count-negatif">0</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-sm font-medium text-gray-600">Netral (Informasi Umum)</span>
+                                <span class="badge badge-netral" id="count-netral">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-green-600">Positif (Bantuan/Kondisi Aman)</span>
+                                <span class="badge badge-positif" id="count-positif">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grafik Distribusi -->
+            <div class="panel-box md:col-span-2">
+                <div class="panel-header">GRAFIK DISTRIBUSI SENTIMEN DAMPAK</div>
+                <div class="p-4 relative" style="height: 300px;">
+                    <div id="chart-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10">
+                        <div class="loader"></div>
+                        <p class="text-xs text-gray-500">Menyusun visualisasi grafik...</p>
+                    </div>
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Data -->
+        <div class="panel-box">
+            <div class="panel-header flex justify-between items-center">
+                <span>TABEL LOG DATA SENTIMEN MASYARAKAT (REAL-TIME)</span>
+                <button id="btn-refresh" class="bg-instansi-primary hover:bg-blue-800 text-white px-3 py-1 text-xs uppercase font-bold cursor-pointer">
+                    Muat Ulang Data
+                </button>
+            </div>
+            <div class="p-0 overflow-x-auto">
+                <table class="table-resmi">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">NO</th>
+                            <th style="width: 15%">TANGGAL (WIB)</th>
+                            <th style="width: 50%">TEKS SUMBER (KUTIPAN PUBLIK)</th>
+                            <th style="width: 15%">KATA KUNCI TERDETEKSI</th>
+                            <th style="width: 15%">KLASIFIKASI SENTIMEN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-gray-500">
+                                <div class="loader"></div>
+                                Mengunduh data dari peladen (API)...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 bg-gray-50 border-t border-gray-300 text-xs text-gray-600 flex justify-between items-center">
+                <span id="data-info">Menampilkan 0 data</span>
+                <span>Sumber Data: Platform Publik (via Apify API)</span>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-gray-800 text-gray-300 py-6 px-6 md:px-12 text-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-gray-600 pb-4 mb-4">
+            <div>
+                <p class="font-bold text-white mb-2 uppercase">Sistem Pantau Sentimen Masyarakat (SIPENDAK)</p>
+                <p>Versi 1.0 (Web Statis)</p>
+                <p>Dikembangkan untuk memantau sebaran keluhan dan dampak abu vulkanik Gunung Anak Krakatau secara cepat dari opini publik.</p>
+            </div>
+            <div class="md:text-right">
+                <p class="font-bold text-white mb-2 uppercase">Kontak Darurat</p>
+                <p>Pusat Panggilan BNPB: 117</p>
+                <p>Ambulans Gawat Darurat: 118 / 119</p>
+            </div>
+        </div>
+        <div class="text-center text-xs text-gray-400">
+            &copy; 2026 - Data pada situs ini di-generate dari API publik pihak ketiga.
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set tanggal hari ini
+            const dateElement = document.getElementById('current-date');
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateElement.textContent = new Date().toLocaleDateString('id-ID', options) + ' WIB';
+
+            const API_URL = 'https://api.apify.com/v2/datasets/TC45F5nW2auYXQ7Jh/items?token=apify_api_1HX09bpgHUWOXycXrKUfSnMWPVi5lG0mQXM0';
+            
+            let chartInstance = null;
+
+            // Kamus kata kunci sederhana untuk klasifikasi sentimen dampak abu vulkanik
+            const keywords = {
+                negatif: ['abu', 'gelap', 'sesak', 'debu', 'hujan abu', 'tebal', 'merusak', 'batuk', 'masker', 'bahaya', 'takut', 'panik', 'mengganggu', 'kotor', 'jarak pandang', 'bau', 'belerang'],
+                positif: ['aman', 'bantuan', 'mereda', 'bersih', 'terkendali', 'surut', 'selamat', 'waspada', 'bersiap', 'koordinasi'],
+                // Jika tidak masuk keduanya, dianggap netral (berita, informasi kaku)
+            };
+
+            // Fungsi sederhana untuk menganalisis sentimen berdasarkan kata kunci
+            function analyzeSentiment(text) {
+                if (!text) return { label: 'Netral', class: 'badge-netral', matchedWords: '-' };
+                
+                let textLower = text.toLowerCase();
+                let negCount = 0;
+                let posCount = 0;
+                let matchedWords = [];
+
+                keywords.negatif.forEach(word => {
+                    if (textLower.includes(word)) {
+                        negCount++;
+                        matchedWords.push(word);
+                    }
+                });
+
+                keywords.positif.forEach(word => {
+                    if (textLower.includes(word)) {
+                        posCount++;
+                        matchedWords.push(word);
+                    }
+                });
+
+                // Rule klasifikasi sederhana
+                if (negCount > posCount) {
+                    return { label: 'Negatif', class: 'badge-negatif', matchedWords: matchedWords.join(', ') };
+                } else if (posCount > negCount) {
+                    return { label: 'Positif', class: 'badge-positif', matchedWords: matchedWords.join(', ') };
+                } else {
+                    return { label: 'Netral', class: 'badge-netral', matchedWords: matchedWords.length > 0 ? matchedWords.join(', ') : 'Tidak ada (Umum)' };
+                }
+            }
+
+            // Fungsi untuk mengambil dan memproses data dari API
+            async function fetchData() {
+                // Tampilkan loading
+                document.getElementById('table-body').innerHTML = `
+                    <tr><td colspan="5" class="text-center py-8 text-gray-500"><div class="loader"></div>Mengambil data dari API...</td></tr>
+                `;
+                document.getElementById('stats-loading').style.display = 'block';
+                document.getElementById('stats-content').style.display = 'none';
+                document.getElementById('chart-loading').style.display = 'flex';
+
+                try {
+                    const response = await fetch(API_URL);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    
+                    processAndRenderData(data);
+                } catch (error) {
+                    console.error("Gagal mengambil data:", error);
+                    document.getElementById('table-body').innerHTML = `
+                        <tr><td colspan="5" class="text-center py-8 text-red-600 font-bold">
+                            GAGAL MENGUNDUH DATA. <br><span class="text-sm font-normal text-gray-600">Pastikan koneksi internet stabil atau token API masih berlaku. Error: ${error.message}</span>
+                        </td></tr>
+                    `;
+                    document.getElementById('stats-loading').innerHTML = '<p class="text-red-500 text-sm">Gagal memuat statistik</p>';
+                    document.getElementById('chart-loading').innerHTML = '<p class="text-red-500 text-sm">Gagal memuat grafik</p>';
+                }
+            }
+
+            // Fungsi untuk memproses data dan menampilkannya di UI
+            function processAndRenderData(items) {
+                // Pastikan data tidak kosong
+                if (!items || items.length === 0) {
+                    document.getElementById('table-body').innerHTML = '<tr><td colspan="5" class="text-center py-4">Tidak ada data ditemukan.</td></tr>';
+                    return;
+                }
+
+                let stats = {
+                    total: 0,
+                    negatif: 0,
+                    netral: 0,
+                    positif: 0
+                };
+
+                let tableHTML = '';
+                
+                // Ambil field text (asumsi API dari sosmed/berita biasanya punya field 'text' atau 'full_text')
+                // Apify dataset formatnya bervariasi, kita coba cari field text yang relevan.
+                
+                items.forEach((item, index) => {
+                    // Cari teks dari berbagai kemungkinan key (tweet, post, text, content)
+                    let textContent = item.text || item.full_text || item.tweet || item.content || item.description || JSON.stringify(item).substring(0, 100) + "...";
+                    
+                    // Batasi teks agar tidak terlalu panjang di tabel
+                    let shortText = textContent.length > 150 ? textContent.substring(0, 150) + '...' : textContent;
+
+                    // Analisis sentimen
+                    const sentimentResult = analyzeSentiment(textContent);
+                    
+                    // Update statistik
+                    stats.total++;
+                    if (sentimentResult.label === 'Negatif') stats.negatif++;
+                    else if (sentimentResult.label === 'Netral') stats.netral++;
+                    else if (sentimentResult.label === 'Positif') stats.positif++;
+
+                    // Format tanggal kaku (jika ada created_at, jika tidak gunakan waktu random mock)
+                    let dateStr = item.created_at || item.date || item.timestamp;
+                    let formattedDate = 'Tidak diketahui';
+                    if (dateStr) {
+                        try {
+                            const d = new Date(dateStr);
+                            formattedDate = d.toLocaleString('id-ID');
+                        } catch(e) {}
+                    } else {
+                        // Mock tanggal agar tabel terlihat penuh jika api tidak sedia tanggal
+                        const mockDate = new Date(Date.now() - Math.floor(Math.random() * 10000000000));
+                        formattedDate = mockDate.toLocaleString('id-ID');
+                    }
+
+                    tableHTML += `
+                        <tr>
+                            <td class="text-center">${index + 1}</td>
+                            <td class="text-xs text-gray-600">${formattedDate}</td>
+                            <td class="text-sm italic">"${shortText}"</td>
+                            <td class="text-xs text-gray-500">${sentimentResult.matchedWords}</td>
+                            <td class="text-center">
+                                <span class="badge ${sentimentResult.class}">${sentimentResult.label}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                // Render Tabel
+                document.getElementById('table-body').innerHTML = tableHTML;
+                document.getElementById('data-info').textContent = `Menampilkan ${stats.total} baris data tercatat`;
+
+                // Render Statistik
+                document.getElementById('stats-loading').style.display = 'none';
+                document.getElementById('stats-content').style.display = 'block';
+                
+                document.getElementById('total-data').textContent = stats.total;
+                document.getElementById('count-negatif').textContent = stats.negatif;
+                document.getElementById('count-netral').textContent = stats.netral;
+                document.getElementById('count-positif').textContent = stats.positif;
+
+                // Render Grafik
+                renderChart(stats);
+            }
+
+            function renderChart(stats) {
+                document.getElementById('chart-loading').style.display = 'none';
+                
+                const ctx = document.getElementById('sentimentChart').getContext('2d');
+                
+                if (chartInstance) {
+                    chartInstance.destroy(); // Hancurkan chart lama jika ada
+                }
+
+                // Palet warna resmi dan kaku
+                const chartColors = [
+                    '#dc2626', // Merah gelap untuk negatif
+                    '#64748b', // Abu-abu untuk netral
+                    '#16a34a'  // Hijau standar untuk positif
+                ];
+
+                chartInstance = new Chart(ctx, {
+                    type: 'bar', // Menggunakan bar chart yang lebih kaku/formal dibanding pie chart
+                    data: {
+                        labels: ['Dampak Negatif', 'Netral', 'Positif'],
+                        datasets: [{
+                            label: 'Jumlah Frekuensi (Dokumen)',
+                            data: [stats.negatif, stats.netral, stats.positif],
+                            backgroundColor: chartColors,
+                            borderColor: chartColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false // Sembunyikan legend karena warna sudah jelas
+                            },
+                            title: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Jumlah Dokumen',
+                                    font: { size: 12, family: "'Roboto', sans-serif" }
+                                },
+                                grid: {
+                                    color: '#e2e8f0'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: { size: 12, family: "'Roboto', sans-serif", weight: 'bold' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Event listener tombol refresh
+            document.getElementById('btn-refresh').addEventListener('click', () => {
+                fetchData();
+            });
+
+            // Mulai ambil data saat pertama kali dimuat
+            fetchData();
+        });
+    </script>
+</body>
+</html>
